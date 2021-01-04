@@ -11,12 +11,25 @@ typedef struct
 } Agent;
 
 //Iterates through each agent and prints its fitness and dna
-void printAgents(Agent **agents, int population)
+void printAllAgents(Agent **agents, int population)
 {
     for (int i = 0; i < population; i++)
     {
         printf("Fitness: %f\tDNA: %s\n", agents[i]->fitness, agents[i]->dna);
     }
+}
+
+void printBestAgent(Agent **agents, int population, int generation)
+{
+    Agent *bestFit = agents[0];
+    for(int i = 0; i < population; i++)
+    {
+        if(agents[i]->fitness > bestFit->fitness)
+        {
+            bestFit = agents[i];
+        }
+    }
+    printf("%d\t%s\t%f\n", generation, bestFit->dna, bestFit->fitness);
 }
 
 //Returns char from 65-122 on ascii table incl. space period and comma
@@ -159,9 +172,12 @@ Agent **evolve(Agent **agents, int population, size_t targetLen, double mutation
 
     for (int i = 0; i < population; i++)
     {
-        //implement something to make sure the parents arent the same agent
         Agent *parent1 = weightedSelect(agents, population);
         Agent *parent2 = weightedSelect(agents, population);
+        while(parent1 == parent2) {
+            parent1 = weightedSelect(agents, population);
+            parent2 = weightedSelect(agents, population);
+        }
         evolvedAgents[i] = reproduce(parent1, parent2, targetLen, mutationRate);
     }
 
@@ -169,4 +185,15 @@ Agent **evolve(Agent **agents, int population, size_t targetLen, double mutation
     return evolvedAgents;
 }
 
-int checkFinished(Agent **agents, int population);
+//Loops through `agents` and checks if any has a fitness of 100
+int checkFinished(Agent **agents, int population)
+{
+    for(int i = 0; i < population; i++)
+    {
+        if(agents[i]->fitness == 100.0)
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
