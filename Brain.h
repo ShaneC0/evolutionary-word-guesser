@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 typedef struct
 {
@@ -9,6 +10,7 @@ typedef struct
     char dna[];
 } Agent;
 
+//Iterates through each agent and prints its fitness and dna
 void printAgents(Agent **agents, int population)
 {
     for (int i = 0; i < population; i++)
@@ -30,6 +32,7 @@ char generateChar(void)
     return (char)charCode;
 }
 
+//Frees each agent then the array itself
 void freeAgents(Agent **agents, int population)
 {
     for (int i = 0; i < population; i++)
@@ -60,6 +63,8 @@ Agent **generateAgents(int population, size_t targetLen)
 {
     Agent **agents = malloc((sizeof(Agent) + (sizeof(char) * targetLen)) * population);
 
+    //makes initial DNA different every time
+    srand(time(0));
     for (int i = 0; i < population; i++)
     {
         agents[i] = generateAgent(targetLen);
@@ -67,8 +72,6 @@ Agent **generateAgents(int population, size_t targetLen)
 
     return agents;
 }
-
-void sortAgentsByFitness(Agent **agents, int population);
 
 //Sets `fitness` value on `agent` to percentage of characters identical to `target`
 void calcOneFitness(Agent *agent, char *target)
@@ -93,3 +96,77 @@ void calcAllFitness(Agent **agents, char *target, int population)
         calcOneFitness(agents[i], target);
     }
 }
+
+//Returns an agent from `agents` based on fitness
+Agent *weightedSelect(Agent **agents, int population)
+{
+    while (1)
+    {
+        Agent *agent = agents[rand() % population];
+        int r = rand() % 100;
+
+        if (r < agent->fitness)
+        {
+            return agent;
+        }
+    }
+}
+
+//Sets `child` dna to be half of `parent1`'s and half `parent2`s
+void crossover(Agent *child, Agent *parent1, Agent *parent2, size_t targetLen)
+{
+    int splitIndex = targetLen / 2;
+    for (int i = 0; i < targetLen; i++)
+    {
+        if (i < splitIndex)
+        {
+            child->dna[i] = parent1->dna[i];
+        }
+        else
+        {
+            child->dna[i] = parent2->dna[i];
+        }
+    }
+}
+
+//Mutates characters in `child` dna based on `mutationRate`
+void mutate(Agent *child, size_t targetLen, double mutationRate)
+{
+    for (size_t i = 0; i < targetLen; i++)
+    {
+        if (((double) rand() / RAND_MAX) < mutationRate)
+        {
+            child->dna[i] = generateChar();
+        }
+    }
+}
+
+//Takes two parents and returns a child with crossed and mutated dna
+Agent *reproduce(Agent *parent1, Agent *parent2, size_t targetLen, double mutationRate)
+{
+    Agent *child = malloc(sizeof(Agent) + (sizeof(char) * targetLen));
+
+    crossover(child, parent1, parent2, targetLen);
+    mutate(child, targetLen, mutationRate);
+
+    return child;
+}
+
+//Returns an array of agents that are children of the array passed in
+Agent **evolve(Agent **agents, int population, size_t targetLen, double mutationRate)
+{
+    Agent **evolvedAgents = malloc((sizeof(Agent) + (sizeof(char) * targetLen)) * population);
+
+    for (int i = 0; i < population; i++)
+    {
+        //implement something to make sure the parents arent the same agent
+        Agent *parent1 = weightedSelect(agents, population);
+        Agent *parent2 = weightedSelect(agents, population);
+        evolvedAgents[i] = reproduce(parent1, parent2, targetLen, mutationRate);
+    }
+
+    free(agents);
+    return evolvedAgents;
+}
+
+int checkFinished(Agent **agents, int population);
